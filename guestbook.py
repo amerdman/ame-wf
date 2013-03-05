@@ -62,6 +62,6 @@ class GuestbookSign(webapp2.RequestHandler):
 
     greeting.content = self.request.get('content')
     greeting.put()
-    self.redirect('/')
+    self.redirect('/guestbook')
 
 
