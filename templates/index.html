@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=720,initial-scale=1.0" />
+<style>
+	body { margin:0; padding:0; font-family:Arial; font-size:190%; }
+	input { font-size:0.7em; }
+	.virtualButton {  float:left;margin-left:10px; padding:5px; border:1px outset #000000; background-color:#dddddd; cursor:pointer; font-size:0.6em; width:120px; text-align:center; }
+</style>
+<script type="text/javascript" src="/static/jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="//maps.googleapis.com/maps/api/js?key=AIzaSyDaxa_BWls3c5H_lpcawrg1b1e-S-SANSE&sensor=false"></script>
+<script type="text/javascript">
+
+var lat;
+var lon;
+var map;
+var marker;
+
+// creates the google map object
+function init_map(){
+var mapOptions = {
+  center: new google.maps.LatLng( 42.026471, -93.63029),
+  zoom: 13,
+  mapTypeId: google.maps.MapTypeId.ROADMAP
+};
+
+map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+}
+
+// try to read the current location from gps
+function getLocation(){
+	if(marker) marker.setMap(null);
+
+	if (navigator.geolocation) {
+		navigator.geolocation.getCurrentPosition(showLocation, locationDisabled);
+	}
+	else {
+		locationDisabled();
+	}
+
+}
+
+// callback for when gps/positioning is disabled
+function locationDisabled(){$('#divMyLocation').html('Positioning is not enabled');}
+
+// callback when location is retrieved
+function showLocation(loc){
+	lat = loc.coords.latitude;
+	lon = loc.coords.longitude;
+	$('#divMyLocation').html(lat.toFixed(5) + ", " + lon.toFixed(5));
+	var markerOpts = { map:map,	position:new google.maps.LatLng(lat, lon)};
+	marker = new google.maps.Marker(markerOpts);
+}
+
+// function used for testing, will set the current position to any lat/lon that is passed
+function testLocation(lat, lon){
+	if(marker) marker.setMap(null);
+	var loc = { coords: { latitude:lat, longitude:lon}};
+	showLocation(loc);
+}
+
+// uses an ajax post to save the location of the biker along with their name
+function saveBiker(){
+	if(lat){
+		var data = { lat:lat, lon:lon, name:$('#txtName').val() };
+		$.post('/', data, null, 'text');
+	}
+}
+
+// uses an ajax post to save the location of the busdriver
+function saveBus(){
+	if(lat){
+		var data = { lat:lat, lon:lon, directions:$('#txtBusDirections').val() };
+		$.post('/busdriver', data, function(ret){ busMarker.setPosition(new google.maps.LatLng(lat, lon));}, 'text');
+	}
+}
+
+{% autoescape off %}
+var busLoc = {{ busLocation }};
+var bikerLocs = {{ bikerLocations }};
+{% endautoescape %}
+
+$(document).ready(function(){ 
+	init_map(); 
+	var busMarkerOpts = { map:map, position:new google.maps.LatLng(busLoc.lat, busLoc.lon), icon:'/static/bus_50.png' };
+	busMarker = new google.maps.Marker(busMarkerOpts);
+	getLocation(); 
+});
+
+</script>
+</head>
+<body>
+
+	<div style="margin:0 auto;width:720px;">
+		<div style="height:500px;"><div id="map_canvas" style="width:100%; height:100%;"></div></div>
+		<table style="width:100%;">
+			<tr>
+				<td style="vertical-align:top; width:40%;">Your Location:</td>
+				<td style="width:40%;">
+					<div id="divMyLocation">Retrieving Location...</div>
+				</td>
+				<td style="width:20%;">
+					<div style="float:right;" class="virtualButton" onclick="getLocation();" id="btnGetMyLocation">Refresh</div>
+				</td>
+			</tr>
+			{{ actionArea }}
+		</table>
+		<div style="margin-top:20px; border-top:1px solid #dddddd; padding-top:10px;">
+			Testing<br/>Set location to: 
+					<div style="float:right;" class="virtualButton" onclick="testLocation(42.021032, -93.634962);">Hilton</div>
+					<div style="float:right;" class="virtualButton" onclick="testLocation(42.049685,-93.622766);">Mall</div>
+
+					<div style="float:right;" class="virtualButton" onclick="testLocation(42.021608,-93.670013);">HyVee</div>
+		</div>
+	</div>
+
+</body>
+</html>
